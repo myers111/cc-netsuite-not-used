@@ -3,12 +3,12 @@
  * @NScriptType ClientScript
  * @NModuleScope SameAccount
  */
-define(['N/currentRecord','N/url','../Module/ccTransaction','../Module/ccItem'],
+define(['N/url', 'N/currentRecord'],
 /**
  * @param {log} log
  * @param {record} record
  */
-function(currentRecord,url,ccTransaction,ccItem) {
+function(url, currentRecord) {
 
     /**
      * Function to be executed after page is initialized.
@@ -155,139 +155,84 @@ function(currentRecord,url,ccTransaction,ccItem) {
 
     }
 
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    
-    function addSpecialItem() {
+    function importSchedule() {
 
 		var objRecord = currentRecord.get();
 
-    	var project = objRecord.getText({
-    	    fieldId: 'job'
+    	var id = objRecord.getValue({
+    	    fieldId: 'id'
     	});
-
-    	if (!project) {
-    		
-    		alert('You need to select a project.');
-    		
-    		return;
-    	}
 
         var suiteletURL = url.resolveScript({
-            scriptId: 'customscript_ccm_items_special_su',
-            deploymentId: 'customdeploy_ccm_items_special_su',
+            scriptId: 'customscript_ccm_fileupload_su',
+            deploymentId: 'customdeploy_ccm_fileupload_su',
             returnExternalUrl: false,
 			params: {
-				'rid': objRecord.id,
-				'prj': project,
-				'cs': 'SalesOrder'
+				'iid': id,
+				'fid': 1385,
+				'sid': 'customscript_ccm_sched_import_su',
+				'did': 'customdeploy_ccm_sched_import_su',
+				'title': 'Import Schedule',
+				'temp': 'https://system.netsuite.com/core/media/media.nl?id=5693&c=632005&h=Wb80X5ZRpSnaspMibr9ugyT2yDvD43mnEA6OiDuLmt9Pew-o&_xt=.csv',
+				'inst': 'https://632005.app.netsuite.com/core/media/media.nl?id=5704&c=632005&h=YZX9911oqvDcBjdQD2nJ6VI6ucaz0-b6nFkF0B-w1MivYo4n&_xt=.pdf'
 			}
         });
-        
-        window.open(suiteletURL);
+
+        location.href = suiteletURL;
     }
 
-    function handleSpecialItem(itemId) {
+    function addPanel() {
 
-		var objRecord = currentRecord.get();
-
-    	var itemCount = objRecord.getLineCount({
-    	    sublistId: 'item'
-    	});
-        
-    	objRecord.insertLine({
-    	    sublistId: 'item',
-    	    line: itemCount
-    	});
-    	
-    	objRecord.setCurrentSublistValue({
-    	    sublistId: 'item',
-    	    fieldId: 'item',
-    	    value: itemId
-    	});
-
-        if (itemCount > 25) {
-
-            alert("Your Sales Order has more than 25 items. If you did not choose \"Show All\" before you added the item, your item was created, but it could not be added to the list. You'll have to add it manually.");
-        }
+        addTaskGroup('panel');
     }
 
-    function importItems() {
+    function addProgramming() {
 
-        window.open(ccTransaction.getImportURL('SalesOrder'));
+        addTaskGroup('program');
     }
 
-    function exportItems() {
+    function addFieldService() {
 
-        location.href = ccTransaction.getExportURL('SalesOrder');
+        addTaskGroup('field');
     }
 
-    function handleItems(data) {
+    function addBuilding() {
 
-		var objRecord = currentRecord.get();
+        addTaskGroup('building');
+    }
 
-        objRecord.setValue({
-            fieldId: 'custpage_importinprogress',
-            value: true
+    function addTaskGroup(type) {
+
+        var suiteletURL = url.resolveScript({
+            scriptId: 'customscript_ccm_sched_addtaskgroup_su',
+            deploymentId: 'customdeploy_ccm_sched_addtaskgroup_su',
+            returnExternalUrl: false,
+			params: {
+				'pid': currentRecord.get().id,
+				'type': type
+			}
         });
 
-        for (var i = 0; i < data.items.length; i++) {
+        location.href = suiteletURL;
+    }
 
-            var numLines = objRecord.getLineCount({
-                sublistId: 'item'
-            });
+    function commitSchedule() {
 
-            objRecord.insertLine({
-                sublistId: 'item',
-                line: numLines
-            });
-
-            var item = data.items[i];
-
-            objRecord.setCurrentSublistValue({
-                sublistId: 'item',
-                fieldId: 'item',
-                value: parseInt(item.id),
-                ignoreFieldChange: false,
-                fireSlavingSync: true
-            });
-
-            objRecord.setCurrentSublistValue({
-                sublistId: 'item',
-                fieldId: 'quantity',
-                value: item.qty,
-                fireSlavingSync: true
-            });
-
-            var unitsId = (item.units ? ccItem.getUnitsIdFromClient(item.units) : 1);
-
-            objRecord.setCurrentSublistValue({
-                sublistId: 'item',
-                fieldId: 'units',
-                value: unitsId,
-                fireSlavingSync: true
-            });
-
-            objRecord.setCurrentSublistValue({
-                sublistId: 'item',
-                fieldId: 'rate',
-                value: parseFloat(item.price),
-                fireSlavingSync: true
-            });
-
-            objRecord.commitLine({
-                sublistId: 'item'
-            });
-        }
-
-        objRecord.setValue({
-            fieldId: 'custpage_importinprogress',
-            value: false
+        var suiteletURL = url.resolveScript({
+            scriptId: 'customscript_ccm_sched_commitschedule_su',
+            deploymentId: 'customdeploy_ccm_sched_commitschedule_su',
+            returnExternalUrl: false,
+			params: {
+				'pid': currentRecord.get().id
+			}
         });
+
+        location.href = suiteletURL;
     }
 
     return {
-        pageInit: pageInit,/*
-        fieldChanged: fieldChanged,
+        pageInit: pageInit,
+/*        fieldChanged: fieldChanged,
         postSourcing: postSourcing,
         sublistChanged: sublistChanged,
         lineInit: lineInit,
@@ -296,10 +241,11 @@ function(currentRecord,url,ccTransaction,ccItem) {
         validateInsert: validateInsert,
         validateDelete: validateDelete,
         saveRecord: saveRecord,*/
-        addSpecialItem: addSpecialItem,
-        handleSpecialItem: handleSpecialItem,
-        importItems: importItems,
-        exportItems: exportItems,
-        handleItems: handleItems
+        importSchedule: importSchedule,
+        addPanel: addPanel,
+        addProgramming: addProgramming,
+        addFieldService: addFieldService,
+        addBuilding: addBuilding,
+        commitSchedule: commitSchedule
     };
 });

@@ -3,12 +3,15 @@
  * @NScriptType ClientScript
  * @NModuleScope SameAccount
  */
-define(['N/currentRecord','N/url','../Module/ccTransaction','../Module/ccItem'],
+define(['N/currentRecord','N/url','../Module/ccTransaction','../Module/ccItem','../../com.customcontrolmfr/Module/ccUtil'],
 /**
  * @param {log} log
  * @param {record} record
  */
-function(currentRecord,url,ccTransaction,ccItem) {
+function(currentRecord,url,ccTransaction,ccItem,ccUtil) {
+
+    var NEW_ITEM = 3757;
+    var ADMIN_DEPARTMENT = 4;
 
     /**
      * Function to be executed after page is initialized.
@@ -179,55 +182,51 @@ function(currentRecord,url,ccTransaction,ccItem) {
 			params: {
 				'rid': objRecord.id,
 				'prj': project,
-				'cs': 'SalesOrder'
+				'cs': 'Requisition'
 			}
         });
         
         window.open(suiteletURL);
     }
 
-    function handleSpecialItem(itemId) {
+    function handleSpecialItem(jsonItem) {
 
-		var objRecord = currentRecord.get();
+        var item = JSON.parse(jsonItem);
 
-    	var itemCount = objRecord.getLineCount({
-    	    sublistId: 'item'
-    	});
-        
-    	objRecord.insertLine({
-    	    sublistId: 'item',
-    	    line: itemCount
-    	});
-    	
-    	objRecord.setCurrentSublistValue({
-    	    sublistId: 'item',
-    	    fieldId: 'item',
-    	    value: itemId
-    	});
+        item['id'] = 0;
+        item['desc'] = item.description;
+        item['qty'] = 1;
 
-        if (itemCount > 25) {
+        var data = {
+            unitCount: 1,
+            items: [item]
+        };
 
-            alert("Your Sales Order has more than 25 items. If you did not choose \"Show All\" before you added the item, your item was created, but it could not be added to the list. You'll have to add it manually.");
+        handleItems(data);
+/*
+        if (numLines > 25) {
+
+            alert("Your Requisition has more than 25 items. If you did not choose \"Show All\" before you added the item, you'll have to add it manually. It is" + (item.isNew ? "" : " not") + " a new item it's named " + item.name + ".");
         }
-    }
+*/    }
 
     function importItems() {
 
-        window.open(ccTransaction.getImportURL('SalesOrder'));
-    }
-
-    function exportItems() {
-
-        location.href = ccTransaction.getExportURL('SalesOrder');
+        window.open(ccTransaction.getImportURL('Requisition'));
     }
 
     function handleItems(data) {
-
+        
 		var objRecord = currentRecord.get();
 
         objRecord.setValue({
             fieldId: 'custpage_importinprogress',
             value: true
+        });
+
+        objRecord.setValue({
+            fieldId: 'custbody_ccm_unitcount',
+            value: data.unitCount
         });
 
         for (var i = 0; i < data.items.length; i++) {
@@ -246,14 +245,51 @@ function(currentRecord,url,ccTransaction,ccItem) {
             objRecord.setCurrentSublistValue({
                 sublistId: 'item',
                 fieldId: 'item',
-                value: parseInt(item.id),
-                ignoreFieldChange: false,
+                value: (!item.id ? NEW_ITEM : parseInt(item.id)),
+                ignoreFieldChange: (!item.id ? true : false),
+                fireSlavingSync: true
+            });
+
+            if (!item.id) {
+
+                objRecord.setCurrentSublistValue({
+                    sublistId: 'item',
+                    fieldId: 'custcol_ccm_newitem',
+                    value: item.name,
+                    fireSlavingSync: true
+                });
+            }
+
+            if (!data.departmentId) data.departmentId = ADMIN_DEPARTMENT;
+
+            objRecord.setCurrentSublistValue({
+                sublistId: 'item',
+                fieldId: 'department',
+                value: data.departmentId,
+                fireSlavingSync: true
+            });
+
+            if (item.desc) {
+
+                objRecord.setCurrentSublistValue({
+                    sublistId: 'item',
+                    fieldId: 'description',
+                    value: item.desc,
+                    fireSlavingSync: true
+                });
+            }
+
+            objRecord.setCurrentSublistValue({
+                sublistId: 'item',
+                fieldId: 'custcol_ccm_quantityavailable',
+                value: (item.qtyAvail ? item.qtyAvail : 0),
+                ignoreFieldChange: true,
                 fireSlavingSync: true
             });
 
             objRecord.setCurrentSublistValue({
                 sublistId: 'item',
-                fieldId: 'quantity',
+                fieldId: 'custcol_ccm_unitquantity',
                 value: item.qty,
                 fireSlavingSync: true
             });
@@ -262,7 +298,7 @@ function(currentRecord,url,ccTransaction,ccItem) {
 
             objRecord.setCurrentSublistValue({
                 sublistId: 'item',
-                fieldId: 'units',
+                fieldId: 'custcol_ccm_units',
                 value: unitsId,
                 fireSlavingSync: true
             });
@@ -270,9 +306,91 @@ function(currentRecord,url,ccTransaction,ccItem) {
             objRecord.setCurrentSublistValue({
                 sublistId: 'item',
                 fieldId: 'rate',
-                value: parseFloat(item.price),
+                value: item.price,
                 fireSlavingSync: true
             });
+
+            if (item.lastPrice) {
+
+                objRecord.setCurrentSublistValue({
+                    sublistId: 'item',
+                    fieldId: 'custcol_ccm_lastpurchaseprice',
+                    value: item.lastPrice,
+                    fireSlavingSync: true
+                });
+            }
+
+            if (data.projectId) {
+
+                objRecord.setCurrentSublistValue({
+                    sublistId: 'item',
+                    fieldId: 'customer',
+                    value: data.projectId,
+                    fireSlavingSync: true
+                });
+            }
+
+            if (item.vendorId) {
+
+                objRecord.setCurrentSublistValue({
+                    sublistId: 'item',
+                    fieldId: 'custcol_ccm_vendor',
+                    value: parseInt(item.vendorId),
+                    fireSlavingSync: true
+                });
+            }
+
+            if (!item.vendorId && item.vendor) {
+
+                objRecord.setCurrentSublistValue({
+                    sublistId: 'item',
+                    fieldId: 'custcol_ccm_newvendor',
+                    value: item.vendor,
+                    fireSlavingSync: true
+                });
+            }
+
+            if (item.manufact) {
+
+                objRecord.setCurrentSublistValue({
+                    sublistId: 'item',
+                    fieldId: 'custcol_ccm_manufacturer',
+                    value: item.manufact,
+                    fireSlavingSync: true
+                });
+            }
+
+            if (item.mpn) {
+
+                objRecord.setCurrentSublistValue({
+                    sublistId: 'item',
+                    fieldId: 'custcol_ccm_mpn',
+                    value: item.mpn,
+                    fireSlavingSync: true
+                });
+            }
+
+            var dt = item.receiveBy;
+
+            if (dt && !isNaN(new Date(dt))) {
+
+                objRecord.setCurrentSublistText({
+                    sublistId: 'item',
+                    fieldId: 'custcol_ccm_expectedreceiptdate',
+                    text: ccUtil.getNSDateFromJSDate(new Date(dt)),
+                    fireSlavingSync: true
+                });
+            }
+
+            if (item.bin) {
+
+                objRecord.setCurrentSublistValue({
+                    sublistId: 'item',
+                    fieldId: 'custcol_ccm_bin',
+                    value: item.bin,
+                    fireSlavingSync: true
+                });
+            }
 
             objRecord.commitLine({
                 sublistId: 'item'
@@ -299,7 +417,6 @@ function(currentRecord,url,ccTransaction,ccItem) {
         addSpecialItem: addSpecialItem,
         handleSpecialItem: handleSpecialItem,
         importItems: importItems,
-        exportItems: exportItems,
         handleItems: handleItems
     };
 });

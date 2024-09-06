@@ -3,13 +3,10 @@
  * @NScriptType ClientScript
  * @NModuleScope SameAccount
  */
-define(['N/currentRecord','N/url','../Module/ccTransaction','../Module/ccItem'],
-/**
- * @param {log} log
- * @param {record} record
- */
-function(currentRecord,url,ccTransaction,ccItem) {
+define(['N/currentRecord'],
 
+function(currentRecord) {
+    
     /**
      * Function to be executed after page is initialized.
      *
@@ -94,7 +91,7 @@ function(currentRecord,url,ccTransaction,ccItem) {
      * @since 2015.2
      */
     function validateField(context) {
-    	
+
     }
 
     /**
@@ -109,7 +106,7 @@ function(currentRecord,url,ccTransaction,ccItem) {
      * @since 2015.2
      */
     function validateLine(context) {
-        
+
     }
 
     /**
@@ -155,138 +152,21 @@ function(currentRecord,url,ccTransaction,ccItem) {
 
     }
 
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    
-    function addSpecialItem() {
+    function onCancel() {
 
-		var objRecord = currentRecord.get();
+    	var objRecord = currentRecord.get();
 
-    	var project = objRecord.getText({
-    	    fieldId: 'job'
+    	var referer = objRecord.getValue({
+    	    fieldId: 'custpage_referer'
     	});
 
-    	if (!project) {
-    		
-    		alert('You need to select a project.');
-    		
-    		return;
-    	}
-
-        var suiteletURL = url.resolveScript({
-            scriptId: 'customscript_ccm_items_special_su',
-            deploymentId: 'customdeploy_ccm_items_special_su',
-            returnExternalUrl: false,
-			params: {
-				'rid': objRecord.id,
-				'prj': project,
-				'cs': 'SalesOrder'
-			}
-        });
+        window.onbeforeunload = null;
         
-        window.open(suiteletURL);
-    }
-
-    function handleSpecialItem(itemId) {
-
-		var objRecord = currentRecord.get();
-
-    	var itemCount = objRecord.getLineCount({
-    	    sublistId: 'item'
-    	});
-        
-    	objRecord.insertLine({
-    	    sublistId: 'item',
-    	    line: itemCount
-    	});
-    	
-    	objRecord.setCurrentSublistValue({
-    	    sublistId: 'item',
-    	    fieldId: 'item',
-    	    value: itemId
-    	});
-
-        if (itemCount > 25) {
-
-            alert("Your Sales Order has more than 25 items. If you did not choose \"Show All\" before you added the item, your item was created, but it could not be added to the list. You'll have to add it manually.");
-        }
-    }
-
-    function importItems() {
-
-        window.open(ccTransaction.getImportURL('SalesOrder'));
-    }
-
-    function exportItems() {
-
-        location.href = ccTransaction.getExportURL('SalesOrder');
-    }
-
-    function handleItems(data) {
-
-		var objRecord = currentRecord.get();
-
-        objRecord.setValue({
-            fieldId: 'custpage_importinprogress',
-            value: true
-        });
-
-        for (var i = 0; i < data.items.length; i++) {
-
-            var numLines = objRecord.getLineCount({
-                sublistId: 'item'
-            });
-
-            objRecord.insertLine({
-                sublistId: 'item',
-                line: numLines
-            });
-
-            var item = data.items[i];
-
-            objRecord.setCurrentSublistValue({
-                sublistId: 'item',
-                fieldId: 'item',
-                value: parseInt(item.id),
-                ignoreFieldChange: false,
-                fireSlavingSync: true
-            });
-
-            objRecord.setCurrentSublistValue({
-                sublistId: 'item',
-                fieldId: 'quantity',
-                value: item.qty,
-                fireSlavingSync: true
-            });
-
-            var unitsId = (item.units ? ccItem.getUnitsIdFromClient(item.units) : 1);
-
-            objRecord.setCurrentSublistValue({
-                sublistId: 'item',
-                fieldId: 'units',
-                value: unitsId,
-                fireSlavingSync: true
-            });
-
-            objRecord.setCurrentSublistValue({
-                sublistId: 'item',
-                fieldId: 'rate',
-                value: parseFloat(item.price),
-                fireSlavingSync: true
-            });
-
-            objRecord.commitLine({
-                sublistId: 'item'
-            });
-        }
-
-        objRecord.setValue({
-            fieldId: 'custpage_importinprogress',
-            value: false
-        });
+        location.href = referer;
     }
 
     return {
-        pageInit: pageInit,/*
+        pageInit: pageInit/*,
         fieldChanged: fieldChanged,
         postSourcing: postSourcing,
         sublistChanged: sublistChanged,
@@ -295,11 +175,8 @@ function(currentRecord,url,ccTransaction,ccItem) {
         validateLine: validateLine,
         validateInsert: validateInsert,
         validateDelete: validateDelete,
-        saveRecord: saveRecord,*/
-        addSpecialItem: addSpecialItem,
-        handleSpecialItem: handleSpecialItem,
-        importItems: importItems,
-        exportItems: exportItems,
-        handleItems: handleItems
+        saveRecord: saveRecord*/,
+        onCancel: onCancel
     };
+    
 });

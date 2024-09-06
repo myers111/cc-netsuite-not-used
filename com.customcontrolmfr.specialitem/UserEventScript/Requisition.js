@@ -47,16 +47,8 @@ function(serverWidget) {
                 });
             }
         }
-        else if (context.type == context.UserEventType.VIEW) {
 
-        	context.form.addButton({
-                id: 'custpage_ccm_exportitems',
-                label: 'Export Items',
-                functionName: 'exportItems'
-        	});
-        }
-
-		context.form.clientScriptModulePath = '../ClientScript/SalesOrder.js';
+		context.form.clientScriptModulePath = '../ClientScript/Requisition.js';
     }
 
     /**
