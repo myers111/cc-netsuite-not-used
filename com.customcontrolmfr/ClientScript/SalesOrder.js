@@ -21,24 +21,6 @@ function(record,search,currentRecord,url) {
      */
     function pageInit(context) {
 
-    	var sublist = context.form.getSublist({
-    	    id: 'item'
-    	});
-
-    	if (sublist) {
-
-        	sublist.addButton({
-        	    id: 'custpage_ccm_subclassall',
-        	    label: 'Subclass All Lines',
-        	    functionName: 'subclassAll'
-        	});
-    		
-        	sublist.addButton({
-        	    id: 'custpage_ccm_subclassempty',
-        	    label: 'Subclass Empty Lines',
-        	    functionName: 'subclassEmpty'
-        	});
-    	}
     }
 
     /**
@@ -54,7 +36,7 @@ function(record,search,currentRecord,url) {
      * @since 2015.2
      */
     function fieldChanged(context) {
-        
+
     }
 
     /**
@@ -128,6 +110,7 @@ function(record,search,currentRecord,url) {
      */
     function validateLine(context) {
 
+        return true;
     }
 
     /**
@@ -171,56 +154,74 @@ function(record,search,currentRecord,url) {
      */
     function saveRecord(context) {
 
-    	// NOT USED - EXAMPLE CODE TO INCLUDE THE PROJECT NUMBER IN THE DOCUMENT NAME
-    	
-    	var job = context.currentRecord.getText({
-            fieldId: 'job'
-        });
+    }
 
-    	var pos = job.indexOf(" ", 4);
-    	
-    	var id = job.substring(4, pos);
-    	
-	    var s = search.create({
-	        type: record.Type.SALES_ORDER,
-	        columns: ['internalid'],
-	        filters: [
-	              search.createFilter({
-	                  name: 'tranid',
-	                  operator: search.Operator.STARTSWITH,
-	                  values: [('SO.' + id + '.')]
-	              })
-	         ],
-	    });
+    function subclassAll() {
 
-	    var i = 1;
-	    
-	    s.run().each(function(result) {
-	    	
-	        i++;
-	        
-	        return true;
-	    });
-	
-    	var job = context.currentRecord.setText({
-    	    fieldId: 'tranid',
-    	    text: ('SO.' + id + '.' + i),
-    	    ignoreFieldChange: true
+		setSubclass(false);
+    }
+
+    function subclassEmpty() {
+
+		setSubclass(true);
+    }
+
+    function setSubclass(empty) {
+
+		var objRecord = currentRecord.get();
+
+    	var dflt = objRecord.getValue({
+    	    fieldId: 'custbody_ccm_defaultsubclass'
     	});
 
-    	return true;
+        if (!dflt) return;
+
+    	var numLines = objRecord.getLineCount({
+            sublistId: 'item'
+        });
+
+        for (var i = 0; i < numLines; i++) {
+
+            objRecord.selectLine({
+                sublistId: 'item',
+                line: i
+            });
+
+            if (empty) {
+
+                var sublistValue = objRecord.getCurrentSublistValue({
+                    sublistId: 'item',
+                    fieldId: 'cseg_ccm_subclass'
+                });
+
+                if (sublistValue) continue;
+            }
+
+            objRecord.setCurrentSublistValue({
+                sublistId: 'item',
+                fieldId: 'cseg_ccm_subclass',
+                value: dflt,
+                ignoreFieldChange: true
+            });
+
+            objRecord.commitLine({
+                sublistId: 'item'
+            });
+        }
     }
 
     return {
-        pageInit: pageInit,/*
-        fieldChanged: fieldChanged,
+        pageInit: pageInit,
+        fieldChanged: fieldChanged,/*
         postSourcing: postSourcing,
         sublistChanged: sublistChanged,
         lineInit: lineInit,
-        validateField: validateField,
+        validateField: validateField,*/
         validateLine: validateLine,
         /*validateInsert: validateInsert,
-        validateDelete: validateDelete,*/
-        saveRecord: saveRecord
+        validateDelete: validateDelete,
+        saveRecord: saveRecord,*/
+        subclassAll: subclassAll,
+        subclassEmpty: subclassEmpty
     };
 });
