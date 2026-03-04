@@ -1,3 +1,2 @@
 Transaction Body Fields 
 Purchase Order  custbody_ccm_purchaseorder
-Final Payment   custbody_ccm_finalpayment

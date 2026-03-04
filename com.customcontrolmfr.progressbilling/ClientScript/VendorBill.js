@@ -215,29 +215,6 @@ function(record, ccProgressBilling) {
      */
     function saveRecord(context) {
 
-        var poId = context.currentRecord.getValue({
-            fieldId: 'custbody_ccm_purchaseorder'
-        });
-
-        if (!poId) return true;
-
-        var amount = context.currentRecord.getValue({
-            fieldId: 'usertotal'
-        });
-
-        if (ccProgressBilling.isFinalPayment({
-            billId: context.currentRecord.id,
-            poId: poId,
-            amount: amount
-        })) {
-
-            context.currentRecord.setValue({
-                fieldId: 'custbody_ccm_finalpayment',
-                value: true
-            });
-        }
-
-    	return true;
     }
 
     return {
@@ -249,8 +226,8 @@ function(record, ccProgressBilling) {
         validateField: validateField,
         validateLine: validateLine,
         validateInsert: validateInsert,
-        validateDelete: validateDelete,*/
-        saveRecord: saveRecord
+        validateDelete: validateDelete,
+        saveRecord: saveRecord*/
     };
     
 });

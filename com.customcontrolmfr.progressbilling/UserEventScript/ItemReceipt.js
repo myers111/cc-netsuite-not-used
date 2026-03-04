@@ -3,7 +3,7 @@
  * @NScriptType UserEventScript
  * @NModuleScope SameAccount
  */
-define(['N/log', 'N/record', 'N/redirect', 'N/search', 'N/ui/message', 'N/url', '../Module/ccProgressBilling'],
+define(['N/record','N/redirect','N/search','N/ui/message','N/url','../Module/ccProgressBilling'],
 /**
  * @param {log} log
  * @param {record} record
@@ -13,7 +13,7 @@ define(['N/log', 'N/record', 'N/redirect', 'N/search', 'N/ui/message', 'N/url', 
  * @param {url} url
  * @param {ccProgressBilling} ccProgressBilling
  */
-function(log, record, redirect, search, message, url, ccProgressBilling) {
+function(record,redirect,search,message,url,ccProgressBilling) {
 
     /**
      * Function definition to be triggered before record is loaded.
@@ -70,68 +70,13 @@ function(log, record, redirect, search, message, url, ccProgressBilling) {
 			isEditMode: false
 		});
 
-		if (!success) recordURL += '&pb=1';
+		if (!success) recordURL += '&pberror=1';
 
 		redirect.redirect({
 			url: recordURL
 		});
     }
-/*
-    function reverseJournalEntries(poName) {
 
-		log.debug({
-			title: 'Reverse Journal Entries',
-			details: 'Reverse Journal Entries for PO ' + poName
-		});
-
-		var s = search.create({
-			type: search.Type.JOURNAL_ENTRY,
-			columns: ['internalid'],
-			filters: [
-				search.createFilter({
-					name: 'memomain',
-					operator: search.Operator.IS,
-					values: poName
-				}),
-				search.createFilter({
-					name: 'formulanumeric',
-					formula: '{account.id}',
-					operator: search.Operator.EQUALTO,
-					values: 866 // 1494 WIP Project Progress Payments
-				}),
-	            search.createFilter({
-	            	name: 'isreversal',
-    		        operator: search.Operator.IS,
-    		        values: 'F'
-    		    }),
-	            search.createFilter({
-	            	name: 'reversaldate',
-    		        operator: search.Operator.ISEMPTY
-    		    }),
-			]
-		});
-
-		s.run().each(function(result) {
-
-			var internalid = parseInt(result.getValue('internalid'));
-
-			var objRecord = record.load({
-				type: record.Type.JOURNAL_ENTRY,
-				id: internalid,
-				isDynamic: true,
-			});
-
-			objRecord.setText({
-				fieldId: 'reversaldate',
-				text: ccUtil.getNSDateFromJSDate(new Date())
-			});
-
-			objRecord.save();
-
-			return true;
-		});
-    }
-*/
     return {
         //beforeLoad: beforeLoad,
         //beforeSubmit: beforeSubmit,

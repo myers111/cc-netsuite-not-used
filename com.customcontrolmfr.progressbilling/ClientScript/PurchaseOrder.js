@@ -156,31 +156,45 @@ function(currentRecord,record,url,search) {
 
 		var objRecord = currentRecord.get();
 
-    	var id = objRecord.getValue({
-    	    fieldId: 'id'
-    	});
-
-    	var projectId = getProjectId(id);
-
         var recordURL = url.resolveRecord({
             recordType: record.Type.VENDOR_BILL,
             isEditMode: true,
             params: {
                 'transform': 'purchord',
                 'whence': '',
-                'id': id,
+                'id': objRecord.id,
                 'e': 'T',
                 'memdoc': 0,
-                'prid': projectId,
-                'record.custbody_ccm_purchaseorder': id,
+                'prid': getProjectId(objRecord.id),
+                'record.custbody_ccm_purchaseorder': objRecord.id,
                 'record.approvalstatus': 'Pending Approval'
             }
         });
 
         location.href = recordURL;
 	}
+
+    function progressCredit() {
+    	
+		var objRecord = currentRecord.get();
+
+        var recordURL = url.resolveRecord({
+            recordType: record.Type.VENDOR_CREDIT,
+            isEditMode: true,
+            params: {
+                'transform': 'purchord',
+                'whence': '',
+                'id': objRecord.id,
+                'e': 'T',
+                'memdoc': 0,
+                'record.custbody_ccm_purchaseorder': objRecord.id
+            }
+        });
+
+        location.href = recordURL;
+	}
     
-    function getProjectId(poid) {
+    function getProjectId(poId) {
 
 	    var s = search.create({
 	        type: record.Type.PURCHASE_ORDER,
@@ -194,7 +208,7 @@ function(currentRecord,record,url,search) {
 		  	            search.createFilter({
 			            	name: 'internalid',
 			                operator: search.Operator.IS,
-			                values: poid
+			                values: poId
 			            }),
 		  	            search.createFilter({
 			            	name: 'formulatext',
@@ -217,30 +231,6 @@ function(currentRecord,record,url,search) {
 
 	    return parseInt(projectId);
     }
-    
-    function progressCredit() {
-    	
-		var objRecord = currentRecord.get();
-
-    	var id = objRecord.getValue({
-    	    fieldId: 'id'
-    	});
-    	
-        var recordURL = url.resolveRecord({
-            recordType: record.Type.VENDOR_CREDIT,
-            isEditMode: true,
-            params: {
-                'transform': 'purchord',
-                'whence': '',
-                'id': id,
-                'e': 'T',
-                'memdoc': 0,
-                'record.custbody_ccm_purchaseorder': id
-            }
-        });
-
-        location.href = recordURL;
-	}
 
     return {
         pageInit: pageInit,

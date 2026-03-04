@@ -3,9 +3,9 @@
  * @NScriptType UserEventScript
  * @NModuleScope SameAccount
  */
-define(['N/log', '../Module/ccProgressBilling'],
+define(['../Module/ccProgressBilling'],
 
-function(log, ccProgressBilling) {
+function(ccProgressBilling) {
    
     /**
      * Function definition to be triggered before record is loaded.

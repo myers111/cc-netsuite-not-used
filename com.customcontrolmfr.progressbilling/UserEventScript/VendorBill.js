@@ -3,7 +3,7 @@
  * @NScriptType UserEventScript
  * @NModuleScope SameAccount
  */
-define(['N/log', 'N/record', 'N/redirect', 'N/search', 'N/ui/message', 'N/url', '../Module/ccProgressBilling'],
+define(['N/record','N/redirect','N/search','N/ui/message','N/url','../Module/ccProgressBilling'],
 /**
  * @param {log} log
  * @param {record} record
@@ -13,7 +13,7 @@ define(['N/log', 'N/record', 'N/redirect', 'N/search', 'N/ui/message', 'N/url', 
  * @param {url} url
  * @param {ccProgressBilling} ccProgressBilling
  */
-function(log, record, redirect, search, message, url, ccProgressBilling) {
+function(record,redirect,search,message,url,ccProgressBilling) {
    
     /**
      * Function definition to be triggered before record is loaded.
@@ -61,13 +61,8 @@ function(log, record, redirect, search, message, url, ccProgressBilling) {
 
 		if (!ccProgressBilling.isValid(poId)) return;
 
-		var finalPayment = context.newRecord.getValue({
-            fieldId: 'custbody_ccm_finalpayment'
-        });
-
 		var success = ccProgressBilling.execute({
-			poId: poId,
-			finalPayment: finalPayment
+			poId: poId
 		});
 
 		var recordURL = url.resolveRecord({
@@ -76,7 +71,7 @@ function(log, record, redirect, search, message, url, ccProgressBilling) {
 			isEditMode: false
 		});
 
-		if (!success) recordURL += '&pb=1';
+		if (!success) recordURL += '&pberror=1';
 
 		redirect.redirect({
 			url: recordURL

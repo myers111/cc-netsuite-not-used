@@ -3,12 +3,12 @@
  * @NScriptType UserEventScript
  * @NModuleScope SameAccount
  */
-define(['N/log', 'N/record', '../Module/ccProgressBilling'],
+define(['N/record','../Module/ccProgressBilling'],
 /**
  * @param {log} log
  * @param {record} record
  */
-function(log, record, ccProgressBilling) {
+function(record,ccProgressBilling) {
 
 	/**
      * Function definition to be triggered before record is loaded.
@@ -47,19 +47,19 @@ function(log, record, ccProgressBilling) {
                 
             	context.form.clientScriptModulePath = '../ClientScript/PurchaseOrder.js';
 
-                var progressPaymentSublist = context.form.getSublist({
+                var sublist = context.form.getSublist({
                     id: 'customsublist52'
                 });
 
-                if (progressPaymentSublist) {
+                if (sublist) {
 
-                    progressPaymentSublist.addButton({
+                    sublist.addButton({
                         id: 'custpage_ccm_progresspayment',
                         label: 'New Payment',
                         functionName: 'progressPayment'
                     });
 
-                    progressPaymentSublist.addButton({
+                    sublist.addButton({
                         id: 'custpage_ccm_progresscredit',
                         label: 'New Credit',
                         functionName: 'progressCredit'

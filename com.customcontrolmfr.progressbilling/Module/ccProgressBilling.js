@@ -2,9 +2,9 @@
  * @NApiVersion 2.x
  * @NModuleScope SameAccount
  */
-define(['N/log','N/ui/message','N/record','N/search','../../com.customcontrolmfr/Module/ccJournalEntry','../../com.customcontrolmfr/Module/ccUtil'],
+define(['N/ui/message','N/record','N/search','../../com.customcontrolmfr/Module/ccJournalEntry','../../com.customcontrolmfr/Module/ccUtil'],
 
-function(log,message,record,search,ccJournalEntry,ccUtil) {
+function(message,record,search,ccJournalEntry,ccUtil) {
 
     // All functions should only recognize inventory items
 
@@ -73,18 +73,16 @@ function(log,message,record,search,ccJournalEntry,ccUtil) {
 
 	    var pbAmount = getProgressBillingAmount(options.poId);
 
+        log.debug({
+            title: 'Progress Bill',
+            details: 'PO Amount: ' + poInfo.amount + ', Progress Billing Amount: ' + pbAmount
+        });
+
 		var id = 0;
 
-		if (options.finalPayment) {
+		if (poInfo.amount == pbAmount) {
 
 			reverseJournalEntries(poInfo.name);
-
-			var poAmount = getPOAmount(options.poId);
-	
-			log.debug({
-				title: 'Final Payment',
-				details: 'PO Amount: ' + poAmount + ', Progress Billing Amount: ' + pbAmount
-			});
 	
 			var objBill = record.transform({
 				fromType: record.Type.PURCHASE_ORDER,
@@ -182,7 +180,7 @@ function(log,message,record,search,ccJournalEntry,ccUtil) {
 					value: poInfo.projectId
 				});
 
-				var id = objCredit.save({
+				id = objCredit.save({
 					ignoreMandatoryFields: true
 				});
 			}
@@ -245,97 +243,12 @@ function(log,message,record,search,ccJournalEntry,ccUtil) {
 					title: 'Journal Entry Options',
 					details: opt
 				});
-	
+
 				id = ccJournalEntry.create(opt);
 			}
 		}
 
 		return (id != null);
-    }
-    
-    function isFinalPayment(options) {
-
-		if (!options.poId) return false;
-
-		var s1 = search.create({
-			type: search.Type.PURCHASE_ORDER,
-			columns: ['amount'],
-			filters: [
-						  search.createFilter({
-							name: 'internalid',
-							operator: search.Operator.IS,
-							values: options.poId
-						}),
-						  search.createFilter({
-							name: 'mainline',
-							operator: search.Operator.IS,
-							values: 'T'
-						}),
-			]
-		});
-   
-		var poAmount = 0;
-		
-		s1.run().each(function(result) {
-
-			poAmount = parseFloat(result.getValue('amount'));
-
-			if (!poAmount) poAmount = 0;
-
-			return false;
-		});
-
-		var s2 = search.create({
-			type: 'transaction',
-			columns: [
-					search.createColumn({
-						name: 'formulacurrency',
-						summary: search.Summary.SUM,
-						formula: '{amount}'
-					}),
-			],
-			filters: [
-					search.createFilter({
-						name: 'custbody_ccm_purchaseorder',
-						operator: search.Operator.IS,
-						values: options.poId
-					}),
-					  search.createFilter({
-						name: 'formulanumeric',
-						formula: '{account.id}',
-						operator: search.Operator.EQUALTO,
-						values: 866 // 1494 WIP Project Progress Payments
-					}),
-					  search.createFilter({
-						name: 'formulanumeric',
-						formula: "CASE WHEN {type} = 'Bill' THEN CASE WHEN {approvalstatus} = 'Approved' THEN 1 ELSE 0 END ELSE 1 END",
-						operator: search.Operator.EQUALTO,
-						values: 1
-					}),
-					  search.createFilter({
-						name: 'trandate',
-						operator: search.Operator.ONORBEFORE,
-						values: ccUtil.getNSDateFromJSDate(new Date())
-					}),
-			]
-		});
-
-		var amount = 0;
-		
-		s2.run().each(function(result) {
-
-			amount = parseFloat(result.getValue(result.columns[0]));
-
-			if (!amount) amount = 0;
-			
-			return false;
-		});
-//alert(poAmount + ' - ' + amount + ' - ' + options.amount + ' - ' + options.billId);
-		var newAmount = amount + (options.billId ? 0 : options.amount); // amt might include freight, but should be close enough for a comparison
-		
-		var balance = poAmount - newAmount;
-
-    	return (balance == 0);
     }
 
     function getMessage(options) {
@@ -351,7 +264,7 @@ function(log,message,record,search,ccJournalEntry,ccUtil) {
 
 			if (options.parameters.hasOwnProperty(key)) {
 
-				if (key == 'pb') {
+				if (key == 'pberror') {
 
 					switch (options.parameters[key]) {
 						case '1':
@@ -446,23 +359,33 @@ function(log,message,record,search,ccJournalEntry,ccUtil) {
 	        columns: [
 				search.createColumn({
 				    name: 'formulatext',
+                    summary: search.Summary.MAX,
 				    formula: '{number}'
 				}),
 				search.createColumn({
 				    name: 'formulanumeric',
+                    summary: search.Summary.MAX,
 				    formula: '{customer.internalid}'
 				}),
 				search.createColumn({
 				    name: 'formulanumeric',
+                    summary: search.Summary.MAX,
 				    formula: '{department.internalid}'
 				}),
 				search.createColumn({
 				    name: 'formulanumeric',
+                    summary: search.Summary.MAX,
 				    formula: '{class.internalid}'
 				}),
 				search.createColumn({
 				    name: 'formulanumeric',
+                    summary: search.Summary.MAX,
 				    formula: '{location.internalid}'
+				}),
+				search.createColumn({
+				    name: 'formulanumeric',
+                    summary: search.Summary.SUM,
+				    formula: '{amount}'
 				}),
 	        ],
 	        filters: [
@@ -490,13 +413,15 @@ function(log,message,record,search,ccJournalEntry,ccUtil) {
 	    	var departmentId = result.getValue(result.columns[2]);
 	    	var classId = result.getValue(result.columns[3]);
 	    	var locationId = result.getValue(result.columns[4]);
+	    	var amount = result.getValue(result.columns[5]);
 
 	    	if (projectId) info.projectId = parseInt(projectId);
 	    	if (departmentId) info.departmentId = parseInt(departmentId);
 	    	if (classId) info.classId = parseInt(classId);
 	    	if (locationId) info.locationId = parseInt(locationId);
+	    	if (amount) info.amount = parseFloat(amount);
 
-	        return (!projectId);
+	        return false;
 	    });
 	    
 		log.debug({
@@ -504,42 +429,10 @@ function(log,message,record,search,ccJournalEntry,ccUtil) {
 			details: JSON.stringify(info)
 		});
 
+		//if (!info.name || !info.projectId || !info.locationId || !info.departmentId) return null;
 		if (!info.name || !info.projectId || !info.classId || !info.locationId || !info.departmentId) return null;
 
 	    return info;
-    }
-
-    function getPOAmount(poId) {
-    	
-	    var s = search.create({
-	        type: search.Type.PURCHASE_ORDER,
-	        columns: ['amount'],
-	        filters: [
-		  	            search.createFilter({
-			            	name: 'internalid',
-			                operator: search.Operator.IS,
-			                values: poId
-			            }),
-		  	            search.createFilter({
-			            	name: 'mainline',
-			                operator: search.Operator.IS,
-			                values: 'T'
-			            }),
-		    ]
-	    });
-   
-	    var poAmount = 0;
-	    
-	    s.run().each(function(result) {
-
-	    	poAmount = parseFloat(result.getValue('amount'));
-
-    		if (!poAmount) poAmount = 0;
-
-	        return false;
-	    });
-	    
-	    return poAmount;
     }
 
     function getReceivedAmount(poId) {
@@ -568,8 +461,8 @@ function(log,message,record,search,ccJournalEntry,ccUtil) {
 				search.createFilter({
 					name: 'formulatext',
 					formula: '{item.type}',
-					operator: search.Operator.IS,
-					values: 'Inventory Item'
+					operator: search.Operator.CONTAINS,
+					values: 'Item'
 				}),
 			]
 	    });
@@ -610,7 +503,7 @@ function(log,message,record,search,ccJournalEntry,ccUtil) {
 					formula: '{account.id}',
 					operator: search.Operator.EQUALTO,
 					values: 866 // 1494 WIP Project Progress Payments
-			}),
+			    }),
 				search.createFilter({
 					name: 'formulanumeric',
 					formula: "CASE WHEN {type} = 'Bill' THEN CASE WHEN {approvalstatus} = 'Approved' THEN 1 ELSE 0 END ELSE 1 END",
@@ -661,7 +554,7 @@ function(log,message,record,search,ccJournalEntry,ccUtil) {
 					formula: '{account.id}',
 					operator: search.Operator.EQUALTO,
 					values: 866 // 1494 WIP Project Progress Payments
-			}),
+			    }),
 	            search.createFilter({
 	            	name: 'isreversal',
     		        operator: search.Operator.IS,
@@ -746,7 +639,6 @@ function(log,message,record,search,ccJournalEntry,ccUtil) {
     return {
         isValid: isValid,
         execute: execute,
-		isFinalPayment: isFinalPayment,
 		getMessage: getMessage
     };   
 });
